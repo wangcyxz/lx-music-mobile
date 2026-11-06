@@ -1,11 +1,12 @@
 @echo off
-setlocal
+setlocal enabledelayedexpansion
 
 rem ============================================================
 rem  Push the local fork to GitHub (account: wangcyxz)
-rem  - creates nothing on GitHub: create https://github.com/new
-rem    with name lx-music-mobile first (public, no README)
-rem  - Git Credential Manager will pop a browser login window
+rem  repo: https://github.com/wangcyxz/lx-music-mobile
+rem
+rem  first run: Git Credential Manager pops a browser window,
+rem  sign in as wangcyxz once and the token is stored for good.
 rem ============================================================
 
 set "ROOT=D:\ProgramData\workbuddy\LXmusic-MG"
@@ -13,24 +14,31 @@ if not exist "%ROOT%\" (echo [ERROR] workspace not found: %ROOT% & exit /b 1)
 
 cd /d "%ROOT%\lx-music-mobile" || exit /b 1
 
+set "BRANCH=master"
+for %%v in (package.json) do for /f "delims=" %%i in ('node -p "require('./package.json').version"') do set "VER=%%i"
+
 echo === current remote ===
 git remote -v
 echo.
 
 git remote set-url origin https://github.com/wangcyxz/lx-music-mobile.git 2>nul || git remote add origin https://github.com/wangcyxz/lx-music-mobile.git
 
-echo === pushing main + tags ===
-git push -u origin main --tags
+echo === pushing %BRANCH% ===
+git push -u origin %BRANCH%
 if errorlevel 1 (
   echo.
-  echo [FAILED] push rejected. common causes:
-  echo   1. repository does not exist yet  -^> create it at https://github.com/new
-  echo   2. not signed in                  -^> the credential window must be confirmed
-  echo   3. remote already has commits     -^> run: git push -u origin main --tags --force
+  echo [FAILED] push rejected. checklist:
+  echo   1. repository exists?           https://github.com/wangcyxz/lx-music-mobile
+  echo   2. signed in?                   look for a Git Credential Manager window
+  echo   3. "did not receive expected object" / shallow clone:
+  echo      git fetch --unshallow upstream master
   exit /b 1
 )
 
+echo === pushing tag v%VER% ===
+git push origin v%VER%
+if errorlevel 1 echo [WARN] tag push failed - create the tag first: git tag v%VER%
+
 echo.
 echo [DONE] https://github.com/wangcyxz/lx-music-mobile
-echo next: create a Release with tag v1.9.2 and upload
-echo       release\lx-music-mobile-v1.9.2-arm64-v8a.apk
+echo next: scripts\create-release.ps1  (uploads the APK to a GitHub Release)

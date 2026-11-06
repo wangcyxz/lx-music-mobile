@@ -1,10 +1,9 @@
 @echo off
-chcp 65001 >nul
-setlocal enabledelayedexpansion
+setlocal
 
 rem ============================================================
-rem  一键打包 arm64-v8a 正式版 APK（使用固定签名密钥）
-rem  用法：双击运行，或在命令行执行 scripts\build-release.bat
+rem  Build signed arm64-v8a release APK
+rem  Usage: double-click, or: build-release.bat --dry
 rem ============================================================
 
 set "ROOT=D:\ProgramData\workbuddy\2026-10-19-12-14-06"
@@ -15,35 +14,47 @@ set "ANDROID_SDK_ROOT=%ANDROID_HOME%"
 set "PATH=%JAVA_HOME%\bin;%PATH%"
 
 if not exist "%JAVA_HOME%\bin\java.exe" (
-  echo [错误] 找不到 JDK17: %JAVA_HOME%
+  echo [ERROR] JDK17 not found: %JAVA_HOME%
   goto :fail
 )
 if not exist "%ANDROID_HOME%\platforms\android-36\android.jar" (
-  echo [错误] 找不到 Android SDK platform 36: %ANDROID_HOME%
+  echo [ERROR] Android SDK platform 36 not found: %ANDROID_HOME%
   goto :fail
 )
 if not exist "%PROJECT%\android\app\lxmusic.keystore" (
-  echo [错误] 签名文件缺失: %PROJECT%\android\app\lxmusic.keystore
-  echo        可从 D:\ProgramData\workbuddy\lx-music-signing\ 复制回来
+  echo [ERROR] Signing key missing: %PROJECT%\android\app\lxmusic.keystore
+  echo         Restore it from D:\ProgramData\workbuddy\lx-music-signing\
   goto :fail
 )
 
-for /f "delims=" %%v in ('node -p "require('%PROJECT:\=/%/package.json').version"') do set "VER=%%v"
-for /f "delims=" %%c in ('node -p "require('%PROJECT:\=/%/package.json').versionCode"') do set "VCODE=%%c"
+for /f "usebackq delims=" %%v in (`powershell -NoProfile -Command "(Get-Content -Raw '%PROJECT%\package.json' | ConvertFrom-Json).version"`) do set "VER=%%v"
+for /f "usebackq delims=" %%c in (`powershell -NoProfile -Command "(Get-Content -Raw '%PROJECT%\package.json' | ConvertFrom-Json).versionCode"`) do set "VCODE=%%c"
+
+if not defined VER (
+  echo [ERROR] Failed to read version from package.json
+  goto :fail
+)
+
 echo ============================================================
-echo   版本 %VER%  /  versionCode %VCODE%  /  arm64-v8a
+echo   version %VER%   versionCode %VCODE%   abi arm64-v8a
+echo   final versionCode = %VCODE% * 1000 + 3
 echo ============================================================
+
+if /i "%~1"=="--dry" (
+  echo [dry] environment OK, build skipped
+  exit /b 0
+)
 
 cd /d "%PROJECT%\android"
 call gradlew.bat assembleRelease -PreactNativeArchitectures=arm64-v8a --max-workers=2
 if errorlevel 1 (
-  echo [失败] Gradle 构建失败，请查看上方日志
+  echo [FAILED] Gradle build failed, see log above
   goto :fail
 )
 
 set "APK=%PROJECT%\android\app\build\outputs\apk\release\lx-music-mobile-v%VER%-arm64-v8a.apk"
 if not exist "%APK%" (
-  echo [失败] 未找到产物: %APK%
+  echo [FAILED] APK not found: %APK%
   goto :fail
 )
 
@@ -51,10 +62,10 @@ if not exist "%ROOT%\release" mkdir "%ROOT%\release"
 copy /y "%APK%" "%ROOT%\release\" >nul
 
 echo.
-echo [完成] 产物已复制到： %ROOT%\release\lx-music-mobile-v%VER%-arm64-v8a.apk
+echo [DONE] %ROOT%\release\lx-music-mobile-v%VER%-arm64-v8a.apk
 echo.
-echo 发布到 GitHub Release 时，请创建 tag： v%VER%
-echo 并上传同名文件，这样应用内「检查更新」才能自动下载。
+echo For GitHub Release: tag = v%VER%, upload that same file name
+echo so the in-app update checker can download it.
 exit /b 0
 
 :fail

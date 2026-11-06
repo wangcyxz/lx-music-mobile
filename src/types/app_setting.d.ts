@@ -77,6 +77,16 @@ declare global {
       'common.alwaysKeepStatusbarHeight': boolean
 
       /**
+       * 自动检查自定义源更新
+       */
+      'common.userApiAutoCheckUpdate': boolean
+
+      /**
+       * 发现自定义源更新时自动静默更新（不弹窗）
+       */
+      'common.userApiAutoUpdate': boolean
+
+      /**
        * 主题id
        */
       'theme.id': string
@@ -350,6 +360,26 @@ declare global {
        * 文件命名方式
        */
       'download.fileName': '歌名 - 歌手' | '歌手 - 歌名' | '歌名'
+
+      /**
+       * 边听边下：播放歌曲时自动缓存到本地
+       */
+      'download.isAutoCache': boolean
+
+      /**
+       * 下载时同时保存歌词
+       */
+      'download.isSaveLyric': boolean
+
+      /**
+       * 本地音乐：扫描时过滤过短音频（录音、通知音等）
+       */
+      'localMusic.filterShortAudio': boolean
+
+      /**
+       * 本地音乐：短音频过滤阈值（秒），小于该时长的音频将被忽略
+       */
+      'localMusic.minDuration': number
 
       /**
        * 是否启用同步

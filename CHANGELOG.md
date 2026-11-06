@@ -6,7 +6,17 @@ Project versioning adheres to [Semantic Versioning](http://semver.org/).
 Commit convention is based on [Conventional Commits](http://conventionalcommits.org).
 Change log format is based on [Keep a Changelog](http://keepachangelog.com/).
 
-## [1.9.2](https://github.com/lyswhut/lx-music-mobile/compare/v1.9.1...v1.9.2) - 2026-10-30
+## [1.9.2] - 2026-11-06（定制版）
+
+### 新增
+
+- 在线自定义源监控更新：启动 8 秒后检查一次、之后每 6 小时轮询，检测到新版本时静默更新脚本
+- 边听边下：播放歌曲时自动在后台缓存整首歌曲，可在「设置 → 下载与缓存」中查看
+- 独立下载队列与下载管理页，支持重试、删除、清空已结束任务
+- 下载目录默认使用系统音乐目录（`/storage/emulated/0/Music`），不可写时自动回退
+- 配置备份与恢复：支持本地 JSON 文件与 WebDAV 两种方式，包含设置、音源、列表等数据
+- 内置 6 个默认在线源（野花、grass、LX、汇百泉、ikun、聚合），首次启动自动初始化
+- 本地音乐扫描播放：支持按文件夹分类管理、搜索、批量播放与过滤短音频
 
 ### 修复
 

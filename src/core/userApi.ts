@@ -1,5 +1,5 @@
 import { action, state } from '@/store/userApi'
-import { addUserApi, getUserApiScript, removeUserApi as removeUserApiFromStore, setUserApiAllowShowUpdateAlert as setUserApiAllowShowUpdateAlertFromStore } from '@/utils/data'
+import { addUserApi, getUserApiList, getUserApiScript, removeUserApi as removeUserApiFromStore, setUserApiAllowShowUpdateAlert as setUserApiAllowShowUpdateAlertFromStore } from '@/utils/data'
 import { destroy, loadScript } from '@/utils/nativeModules/userApi'
 import { log as writeLog } from '@/utils/log'
 
@@ -27,9 +27,17 @@ export const setUserApiList: typeof action['setUserApiList'] = (list) => {
   action.setUserApiList(list)
 }
 
-export const importUserApi = async(script: string) => {
-  const info = await addUserApi(script)
+export const importUserApi = async(script: string, sourceUrl?: string) => {
+  const info = await addUserApi(script, sourceUrl)
   action.addUserApi(info)
+  return info
+}
+
+/**
+ * 从本地存储刷新自定义源列表（用于更新检查后同步界面）
+ */
+export const refreshUserApiList = async() => {
+  action.setUserApiList(await getUserApiList())
 }
 
 export const removeUserApi = async(ids: string[]) => {

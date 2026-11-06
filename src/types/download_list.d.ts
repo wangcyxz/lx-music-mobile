@@ -12,7 +12,7 @@ declare namespace LX {
     | 'error'
     | 'completed'
 
-    type FileExt = 'mp3' | 'flac' | 'wav' | 'ape'
+    type FileExt = 'mp3' | 'flac' | 'wav' | 'ape' | 'm4a' | 'aac' | 'ogg'
 
     interface ProgressInfo {
       progress: number
@@ -48,6 +48,18 @@ declare namespace LX {
       total: number
       progress: number
       speed: string
+      /**
+       * 是否由「边听边下」自动加入的缓存任务
+       */
+      isAuto?: boolean
+      /**
+       * 任务创建时间
+       */
+      createdAt?: number
+      /**
+       * 任务失败原因
+       */
+      errorMessage?: string
       metadata: {
         musicInfo: LX.Music.MusicInfoOnline
         url: string | null

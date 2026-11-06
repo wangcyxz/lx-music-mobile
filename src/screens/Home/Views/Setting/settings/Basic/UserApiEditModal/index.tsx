@@ -8,6 +8,7 @@ import Dialog, { type DialogType } from '@/components/common/Dialog'
 import Button from '@/components/common/Button'
 import List from './List'
 import ImportBtn from './ImportBtn'
+import { checkAndHandleUserApiUpdate } from '@/core/userApiUpdate'
 
 // interface UrlInputType {
 //   setText: (text: string) => void
@@ -66,6 +67,7 @@ export default forwardRef<UserApiEditModalType, {}>((props, ref) => {
   // const sourceSelectorRef = useRef<SourceSelectorType>(null)
   // const inputRef = useRef<UrlInputType>(null)
   const [visible, setVisible] = useState(false)
+  const [isChecking, setChecking] = useState(false)
   const theme = useTheme()
   const t = useI18n()
 
@@ -95,6 +97,14 @@ export default forwardRef<UserApiEditModalType, {}>((props, ref) => {
     dialogRef.current?.setVisible(false)
   }
 
+  const handleCheckUpdate = () => {
+    if (isChecking) return
+    setChecking(true)
+    void checkAndHandleUserApiUpdate().finally(() => {
+      setChecking(false)
+    })
+  }
+
   const openFAQPage = () => {
     void openUrl('https://lyswhut.github.io/lx-music-doc/mobile/custom-source')
   }
@@ -122,6 +132,11 @@ export default forwardRef<UserApiEditModalType, {}>((props, ref) => {
             <View style={styles.btns}>
               <Button style={{ ...styles.btn, backgroundColor: theme['c-button-background'] }} onPress={handleCancel}>
                 <Text size={14} color={theme['c-button-font']}>{t('close')}</Text>
+              </Button>
+              <Button style={{ ...styles.btn, backgroundColor: theme['c-button-background'] }} onPress={handleCheckUpdate} disabled={isChecking}>
+                <Text size={14} color={theme['c-button-font']}>
+                  {isChecking ? t('user_api_checking_update') : t('user_api_check_update')}
+                </Text>
               </Button>
               <ImportBtn btnStyle={{ ...styles.btn, backgroundColor: theme['c-button-background'] }} />
             </View>

@@ -14,6 +14,8 @@ const defaultSetting: LX.AppSetting = {
   'common.showExitBtn': true,
   'common.useSystemFileSelector': true,
   'common.alwaysKeepStatusbarHeight': false,
+  'common.userApiAutoCheckUpdate': true,
+  'common.userApiAutoUpdate': false,
 
   'player.startupAutoPlay': false,
   'player.startupPushPlayDetailScreen': false,
@@ -69,6 +71,11 @@ const defaultSetting: LX.AppSetting = {
   'list.addMusicLocationType': 'top',
 
   'download.fileName': '歌名 - 歌手',
+  'download.isAutoCache': false,
+  'download.isSaveLyric': true,
+
+  'localMusic.filterShortAudio': true,
+  'localMusic.minDuration': 60,
 
   'sync.enable': false,
 

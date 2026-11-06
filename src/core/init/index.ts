@@ -8,6 +8,10 @@ import dataInit from './dataInit'
 import initSync from './sync'
 import initCommonState from './common'
 import { initDeeplink } from './deeplink'
+import { ensureDownloadInit } from '@/core/download'
+import { initLocalMusic } from '@/core/localMusic'
+import { initDefaultUserApi } from '@/core/defaultUserApi'
+import { startUserApiUpdateMonitor } from '@/core/userApiUpdate'
 import { setApiSource } from '@/core/apiSource'
 import commonActions from '@/store/common/action'
 import settingState from '@/store/setting/state'
@@ -45,6 +49,9 @@ export default async() => {
   await initI18n(setting)
   bootLog('I18n inited.')
 
+  await initDefaultUserApi()
+  bootLog('Default User Api inited.')
+
   await initUserApi(setting)
   bootLog('User Api inited.')
 
@@ -57,11 +64,17 @@ export default async() => {
   bootLog('Player inited.')
   await dataInit(setting)
   bootLog('Data inited.')
+  await ensureDownloadInit()
+  bootLog('Download inited.')
+  await initLocalMusic()
+  bootLog('Local Music inited.')
   await initCommonState(setting)
   bootLog('Common State inited.')
 
   void initSync(setting)
   bootLog('Sync inited.')
+
+  startUserApiUpdateMonitor()
 
   // syncSetting()
 

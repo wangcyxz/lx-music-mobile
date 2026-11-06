@@ -18,6 +18,7 @@ export interface ListMenuProps {
   onPlay: (selectInfo: SelectInfo) => void
   onPlayLater: (selectInfo: SelectInfo) => void
   onAdd: (selectInfo: SelectInfo) => void
+  onDownload: (selectInfo: SelectInfo) => void
   onMove: (selectInfo: SelectInfo) => void
   onEditMetadata: (selectInfo: SelectInfo) => void
   onCopyName: (selectInfo: SelectInfo) => void
@@ -71,7 +72,7 @@ export default forwardRef<ListMenuType, ListMenuProps>((props, ref) => {
     const menu = [
       { action: 'play', label: t('play') },
       { action: 'playLater', label: t('play_later') },
-      // { action: 'download', label: '下载' },
+      { action: 'download', disabled: isLocal, label: t('download_btn') },
       { action: 'add', label: t('add_to') },
       { action: 'move', label: t('move_to') },
       { action: 'changePosition', label: t('change_position') },
@@ -119,6 +120,9 @@ export default forwardRef<ListMenuType, ListMenuProps>((props, ref) => {
         // selectedListRef.current.length
         //   ? setVisibleMusicMultiAddModal(true)
         //   : setVisibleMusicAddModal(true)
+        break
+      case 'download':
+        props.onDownload(selectInfo)
         break
       case 'move':
         props.onMove(selectInfo)

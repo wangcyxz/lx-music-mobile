@@ -1,12 +1,13 @@
-import { useCallback } from 'react'
+import { useCallback, useState } from 'react'
 import Text from '@/components/common/Text'
 import { View, TouchableOpacity, ScrollView } from 'react-native'
-import { confirmDialog, createStyle } from '@/utils/tools'
+import { confirmDialog, createStyle, toast } from '@/utils/tools'
 import { useTheme } from '@/store/theme/hook'
 import { useI18n } from '@/lang'
 import { useUserApiList, state as userApiState } from '@/store/userApi'
 import { useSettingValue } from '@/store/setting/hook'
 import { removeUserApi, setUserApiAllowShowUpdateAlert } from '@/core/userApi'
+import { applyUserApiUpdate } from '@/core/userApiUpdate'
 import { BorderRadius } from '@/theme'
 import CheckBox from '@/components/common/CheckBox'
 import { Icon } from '@/components/common/Icon'
@@ -17,19 +18,28 @@ import { setApiSource } from '@/core/apiSource'
 const formatVersionName = (version: string) => {
   return /^\d/.test(version) ? `v${version}` : version
 }
-const ListItem = ({ item, activeId, onRemove, onChangeAllowShowUpdateAlert }: {
+const ListItem = ({ item, activeId, onRemove, onChangeAllowShowUpdateAlert, onUpdate }: {
   item: LX.UserApi.UserApiInfo
   activeId: string
   onRemove: (id: string, name: string) => void
   onChangeAllowShowUpdateAlert: (id: string, enabled: boolean) => void
+  onUpdate: (id: string) => Promise<void>
 }) => {
   const theme = useTheme()
   const t = useI18n()
+  const [isUpdating, setUpdating] = useState(false)
   const changeAllowShowUpdateAlert = (check: boolean) => {
     onChangeAllowShowUpdateAlert(item.id, check)
   }
   const handleRemove = () => {
     onRemove(item.id, item.name)
+  }
+  const handleUpdate = () => {
+    if (isUpdating) return
+    setUpdating(true)
+    void onUpdate(item.id).finally(() => {
+      setUpdating(false)
+    })
   }
 
   return (
@@ -47,11 +57,37 @@ const ListItem = ({ item, activeId, onRemove, onChangeAllowShowUpdateAlert }: {
               <Text size={12} color={theme['c-font-label']}>{ '   ' + item.author }</Text>
             ) : null
           }
+          {
+            item.sourceUrl ? (
+              <Text size={11} color={theme['c-font-label']}>{ '   ' + t('user_api_online_source') }</Text>
+            ) : null
+          }
         </Text>
         {
           item.description ? (
             <Text size={12} color={theme['c-font-label']}>{item.description}</Text>
           ) : null
+        }
+        {
+          item.hasUpdate
+            ? (
+                <View style={styles.updateRow}>
+                  <Text size={12} color={theme['c-primary-font']}>
+                    {t('user_api_has_update', { version: formatVersionName(item.latestVersion ?? '') })}
+                  </Text>
+                  <TouchableOpacity style={styles.updateBtn} onPress={handleUpdate} disabled={isUpdating}>
+                    <Text size={12} color={theme['c-primary-font']}>
+                      {isUpdating ? t('user_api_updating') : t('user_api_update_now')}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              )
+            : null
+        }
+        {
+          item.checkError
+            ? <Text size={11} color={theme['c-font-label']} numberOfLines={1}>{`${t('user_api_check_update_failed')}: ${item.checkError}`}</Text>
+            : null
         }
         <CheckBox check={item.allowShowUpdateAlert} label={t('user_api_allow_show_update_alert')} onChange={changeAllowShowUpdateAlert} size={0.86} />
       </View>
@@ -98,6 +134,10 @@ export default () => {
   const handleChangeAllowShowUpdateAlert = useCallback((id: string, enabled: boolean) => {
     void setUserApiAllowShowUpdateAlert(id, enabled)
   }, [])
+  const handleUpdate = useCallback(async(id: string) => {
+    const success = await applyUserApiUpdate(id).catch(() => false)
+    toast(success ? t('user_api_update_success') : t('user_api_update_failed'), 'long')
+  }, [t])
 
   return (
     <ScrollView style={styles.scrollView} keyboardShouldPersistTaps={'always'}>
@@ -112,6 +152,7 @@ export default () => {
                 activeId={apiSource}
                 onRemove={handleRemove}
                 onChangeAllowShowUpdateAlert={handleChangeAllowShowUpdateAlert}
+                onUpdate={handleUpdate}
               />
               )
             })
@@ -143,6 +184,15 @@ const styles = createStyle({
     paddingRight: 10,
     flex: 1,
     gap: 2,
+  },
+  updateRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  updateBtn: {
+    paddingVertical: 2,
+    paddingHorizontal: 4,
   },
   listItemRight: {
     flex: 0,

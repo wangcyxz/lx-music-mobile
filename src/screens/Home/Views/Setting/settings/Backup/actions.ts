@@ -6,7 +6,7 @@ import { confirmDialog, handleReadFile, handleSaveFile, showImportTip, toast } f
 import listState from '@/store/list/state'
 
 
-const getAllLists = async() => {
+export const getAllLists = async() => {
   const lists = []
   lists.push(await getListMusics(listState.defaultList.id).then(musics => ({ ...listState.defaultList, list: musics })))
   lists.push(await getListMusics(listState.loveList.id).then(musics => ({ ...listState.loveList, list: musics })))
@@ -43,7 +43,7 @@ const importOldListData = async(lists: any[]) => {
   const loveList = allLists.shift()!.list
   await overwriteListFull({ defaultList, loveList, userList: allLists as LX.List.UserListInfoFull[] })
 }
-const importNewListData = async(lists: Array<LX.List.MyDefaultListInfoFull | LX.List.MyLoveListInfoFull | LX.List.UserListInfoFull>) => {
+export const importNewListData = async(lists: Array<LX.List.MyDefaultListInfoFull | LX.List.MyLoveListInfoFull | LX.List.UserListInfoFull>) => {
   const allLists = await getAllLists()
   for (const list of lists) {
     try {

@@ -20,6 +20,7 @@ import {
   removeTempPlayList,
 } from '@/core/player/tempPlayList'
 import { getMusicUrl, getPicPath, getLyricInfo } from '@/core/music'
+import { autoCacheMusic } from '@/core/download'
 import { requestMsg } from '@/utils/message'
 import { getRandom } from '@/utils/common'
 import { filterList } from './utils'
@@ -140,6 +141,8 @@ export const setMusicUrl = (musicInfo: LX.Music.MusicInfo | LX.Download.ListItem
   void getMusicPlayUrl(musicInfo, isRefresh).then((url) => {
     if (!url) return
     setResource(musicInfo, url, playerState.progress.nowPlayTime)
+    // 边听边下：复用刚解析出来的播放地址，在后台把歌曲缓存到本地
+    if (!('progress' in musicInfo) && musicInfo.source != 'local') void autoCacheMusic(musicInfo, url)
   }).catch((err: any) => {
     console.log(err)
     setStatusText(err.message as string)

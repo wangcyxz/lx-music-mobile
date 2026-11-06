@@ -27,6 +27,9 @@ const syncHostHistoryPrefix = storageDataPrefix.syncHostHistory
 const listPrefix = storageDataPrefix.list
 const dislikeListPrefix = storageDataPrefix.dislikeList
 const userApiPrefix = storageDataPrefix.userApi
+const downloadListKey = storageDataPrefix.downloadList
+const localMusicKey = storageDataPrefix.localMusic
+const webdavConfigKey = storageDataPrefix.webdavConfig
 const openStoragePathPrefix = storageDataPrefix.openStoragePath
 const selectedManagedFolderPrefix = storageDataPrefix.selectedManagedFolder
 
@@ -551,17 +554,20 @@ const matchInfo = (scriptInfo: string) => {
 
   return infos as Record<keyof typeof INFO_NAMES, string>
 }
-export const addUserApi = async(script: string): Promise<LX.UserApi.UserApiInfo> => {
+export const parseUserApiScriptInfo = (script: string): Record<keyof typeof INFO_NAMES, string> => {
   const result = /^\/\*[\S|\s]+?\*\//.exec(script)
   if (!result) throw new Error(global.i18n.t('user_api_add_failed_tip'))
-
-  let scriptInfo = matchInfo(result[0])
+  return matchInfo(result[0])
+}
+export const addUserApi = async(script: string, sourceUrl?: string): Promise<LX.UserApi.UserApiInfo> => {
+  const scriptInfo = parseUserApiScriptInfo(script)
 
   scriptInfo.name ||= `user_api_${new Date().toLocaleString()}`
   const apiInfo: LX.UserApi.UserApiInfo = {
     id: `user_api_${Math.random().toString().substring(2, 5)}_${Date.now()}`,
     ...scriptInfo,
     allowShowUpdateAlert: true,
+    ...(sourceUrl ? { sourceUrl, lastCheckTime: Date.now(), latestVersion: scriptInfo.version } : {}),
   }
   userApis.push(apiInfo)
   await saveDataMultiple([
@@ -570,6 +576,20 @@ export const addUserApi = async(script: string): Promise<LX.UserApi.UserApiInfo>
   ])
   return apiInfo
 }
+/**
+ * 直接写入自定义源信息（脚本内容可为空，后续再补齐）
+ * 用于内置在线音源的初始化，不需要先解析脚本头部
+ */
+export const addUserApiInfo = async(apiInfo: LX.UserApi.UserApiInfo, script: string = '') => {
+  await ensureUserApiList()
+  userApis.push(apiInfo)
+  await saveDataMultiple([
+    [userApiPrefix, userApis],
+    [`${userApiPrefix}${apiInfo.id}`, script],
+  ])
+  return { ...apiInfo }
+}
+
 export const removeUserApi = async(ids: string[]) => {
   if (!userApis) return []
   const _ids: string[] = []
@@ -589,4 +609,110 @@ export const setUserApiAllowShowUpdateAlert = async(id: string, enable: boolean)
   if (!targetApi) return
   targetApi.allowShowUpdateAlert = enable
   await saveData(userApiPrefix, userApis)
+}
+
+const ensureUserApiList = async() => {
+  if (!userApis?.length) await getUserApiList()
+}
+
+/**
+ * 更新自定义源的更新检查状态（不修改脚本内容）
+ */
+export const setUserApiUpdateState = async(id: string, patch: Partial<LX.UserApi.UserApiInfo>) => {
+  await ensureUserApiList()
+  const targetApi = userApis.find(api => api.id == id)
+  if (!targetApi) return null
+  Object.assign(targetApi, patch)
+  await saveData(userApiPrefix, userApis)
+  return { ...targetApi }
+}
+
+/**
+ * 使用远端脚本更新自定义源，并同步脚本头部信息
+ */
+export const updateUserApiScript = async(id: string, script: string): Promise<LX.UserApi.UserApiInfo | null> => {
+  await ensureUserApiList()
+  const targetApi = userApis.find(api => api.id == id)
+  if (!targetApi) return null
+
+  const scriptInfo = parseUserApiScriptInfo(script)
+  Object.assign(targetApi, scriptInfo, {
+    hasUpdate: false,
+    latestVersion: scriptInfo.version,
+    lastCheckTime: Date.now(),
+    checkError: undefined,
+  })
+  await saveDataMultiple([
+    [userApiPrefix, userApis],
+    [`${userApiPrefix}${id}`, script],
+  ])
+  return { ...targetApi }
+}
+
+/**
+ * 用备份数据整体覆盖自定义源列表（含脚本内容）
+ */
+export const overwriteUserApiList = async(list: Array<LX.UserApi.UserApiInfo & { script?: string }>) => {
+  userApis = []
+  const data: Array<[string, unknown]> = [[userApiPrefix, userApis]]
+  for (const info of list) {
+    const { script, ...apiInfo } = info
+    const newInfo: LX.UserApi.UserApiInfo = {
+      ...apiInfo,
+      allowShowUpdateAlert: apiInfo.allowShowUpdateAlert ?? true,
+    }
+    // 保留原 id，使 common.apiSource 设置仍能对应到恢复的源
+    if (!newInfo.id) newInfo.id = `user_api_${Math.random().toString().substring(2, 5)}_${Date.now()}`
+    userApis.push(newInfo)
+    data.push([`${userApiPrefix}${newInfo.id}`, script ?? ''])
+  }
+  await saveDataMultiple(data)
+  return [...userApis]
+}
+
+/**
+ * 获取本地音乐数据（扫描目录与扫描结果）
+ */
+export const getLocalMusicData = async(): Promise<LX.LocalMusic.LocalMusicData | null> => {
+  return await getData<LX.LocalMusic.LocalMusicData>(localMusicKey) ?? null
+}
+/**
+ * 保存本地音乐数据（扫描目录与扫描结果）
+ */
+export const saveLocalMusicData = async(data: LX.LocalMusic.LocalMusicData) => {
+  await saveData(localMusicKey, data)
+}
+
+/**
+ * 获取下载任务列表
+ */
+export const getDownloadList = async(): Promise<LX.Download.ListItem[]> => {
+  return await getData<LX.Download.ListItem[]>(downloadListKey) ?? []
+}
+/**
+ * 保存下载任务列表
+ */
+export const saveDownloadList = async(list: LX.Download.ListItem[]) => {
+  await saveData(downloadListKey, list)
+}
+
+const defaultWebDavConfig: LX.Backup.WebDavConfig = {
+  url: '',
+  user: '',
+  password: '',
+  path: 'lx-music-backup',
+}
+
+/**
+ * 获取 WebDAV 配置
+ */
+export const getWebDavConfig = async(): Promise<LX.Backup.WebDavConfig> => {
+  const config = await getData<LX.Backup.WebDavConfig>(webdavConfigKey)
+  return { ...defaultWebDavConfig, ...(config ?? {}) }
+}
+/**
+ * 保存 WebDAV 配置
+ */
+export const saveWebDavConfig = async(config: LX.Backup.WebDavConfig) => {
+  await saveData(webdavConfigKey, config)
 }

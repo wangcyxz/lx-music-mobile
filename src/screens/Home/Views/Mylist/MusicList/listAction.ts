@@ -12,9 +12,18 @@ import { type Metadata } from '@/components/MetadataEditModal'
 import musicSdk from '@/utils/musicSdk'
 import { getListMusicSync } from '@/utils/listManage'
 import { clearMusicUrlByMusic } from '@/utils/data'
+import { addDownload } from '@/core/download'
 
 export const handlePlay = (listId: SelectInfo['listId'], index: SelectInfo['index']) => {
   void playList(listId, index)
+}
+
+export const handleDownload = (musicInfo: SelectInfo['musicInfo']) => {
+  if (musicInfo.source == 'local') {
+    toast(global.i18n.t('download_local_not_support'))
+    return
+  }
+  void addDownload(musicInfo)
 }
 export const handlePlayLater = (listId: SelectInfo['listId'], musicInfo: SelectInfo['musicInfo'], selectedList: SelectInfo['selectedList'], onCancelSelect: () => void) => {
   if (selectedList.length) {

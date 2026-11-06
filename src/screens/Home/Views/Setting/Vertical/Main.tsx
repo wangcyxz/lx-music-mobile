@@ -3,6 +3,8 @@ import { FlatList, type FlatListProps } from 'react-native'
 
 import Basic from '../settings/Basic'
 import Player from '../settings/Player'
+import Download from '../settings/Download'
+import LocalMusic from '../settings/LocalMusic'
 import LyricDesktop from '../settings/LyricDesktop'
 import Search from '../settings/Search'
 import List from '../settings/List'
@@ -32,6 +34,8 @@ const ListItem = memo(({
 }: { id: SettingScreenIds }) => {
   switch (id) {
     case 'player': return <Player />
+    case 'download': return <Download />
+    case 'local_music': return <LocalMusic />
     case 'lyric_desktop': return <LyricDesktop />
     case 'search': return <Search />
     case 'list': return <List />

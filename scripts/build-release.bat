@@ -3,10 +3,20 @@ setlocal
 
 rem ============================================================
 rem  Build signed arm64-v8a release APK
-rem  Usage: double-click, or: build-release.bat --dry
+rem  usage: build-release.bat [--dry]
+rem
+rem  NOTE: the real workspace folder is LXmusic-MG (ASCII).
+rem  "LXmusic魔改" is a directory junction pointing to it, because
+rem  React Native's gradle plugin breaks on non-ASCII project paths.
+rem  Always build from the real ASCII path below.
 rem ============================================================
 
-set "ROOT=D:\ProgramData\workbuddy\2026-10-19-12-14-06"
+set "ROOT=D:\ProgramData\workbuddy\LXmusic-MG"
+if not exist "%ROOT%\" (
+  echo [ERROR] workspace not found: %ROOT%
+  goto :fail
+)
+
 set "PROJECT=%ROOT%\lx-music-mobile"
 set "JAVA_HOME=%ROOT%\.tools\jdk17\jdk-17.0.20.1+1"
 set "ANDROID_HOME=%ROOT%\.tools\sdk"

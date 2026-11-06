@@ -10,7 +10,7 @@ param(
 # ============================================================
 
 $ErrorActionPreference = 'Continue'
-$root = 'D:\ProgramData\workbuddy\2026-10-19-12-14-06'
+$root = 'D:\ProgramData\workbuddy\LXmusic-MG'
 $project = Join-Path $root 'lx-music-mobile'
 Set-Location $project
 

@@ -52,7 +52,7 @@ Write-Host ''
 Write-Host '=== 2/4 pick upstream tag ==='
 $remoteTags = Get-UpstreamTags
 if ($remoteTags.Count -eq 0) {
-    $remoteTags = @(& git tag | Where-Object { $_ -match '^v\d+(\.\d+)+$' })
+    $remoteTags = @(& git tag | Where-Object { $_ -match '^upstream-v\d+(\.\d+)+$' } | ForEach-Object { $_.Substring(9) })
 }
 $sorted = $remoteTags | Sort-Object { [version]($_.Substring(1)) } -Descending
 Write-Host 'recent upstream tags:'
@@ -67,15 +67,18 @@ Write-Host ("target: " + $Tag) -ForegroundColor Cyan
 
 Write-Host ''
 Write-Host '=== 3/4 fetch tag objects ==='
-$ok = Invoke-GitRetry -GitArgs @('-c', 'http.postBuffer=524288000', 'fetch', '--no-tags', 'upstream', ("refs/tags/{0}:refs/tags/{0}" -f $Tag)) -What "fetch $Tag"
+# upstream tags are stored as upstream-vX.Y.Z so they never clash with our own
+# release tags (vX.Y.Z points at our fork commit).
+$localTag = "upstream-$Tag"
+$ok = Invoke-GitRetry -GitArgs @('-c', 'http.postBuffer=524288000', 'fetch', '--no-tags', 'upstream', ("refs/tags/{0}:refs/tags/{1}" -f $Tag, $localTag)) -What "fetch $Tag"
 if (-not $ok) { Write-Host "[ERROR] cannot fetch tag $Tag" -ForegroundColor Red; exit 1 }
 
 Write-Host ''
 Write-Host '=== 4/4 merge ==='
-& git --no-pager log --oneline --no-decorate "HEAD..$Tag"
-if ($LASTEXITCODE -ne 0) { Write-Host "[ERROR] tag $Tag not found locally" -ForegroundColor Red; exit 1 }
+& git --no-pager log --oneline --no-decorate "HEAD..$localTag"
+if ($LASTEXITCODE -ne 0) { Write-Host "[ERROR] tag $localTag not found locally" -ForegroundColor Red; exit 1 }
 
-& git merge $Tag --no-edit
+& git merge $localTag --no-edit
 if ($LASTEXITCODE -ne 0) {
     Write-Host ''
     Write-Host '[CONFLICT] resolve manually:' -ForegroundColor Yellow
@@ -92,5 +95,6 @@ Write-Host 'next:'
 Write-Host '  1. bump package.json version / versionCode'
 Write-Host '  2. update publish\version.json and CHANGELOG.md'
 Write-Host '  3. run scripts\build-release.bat'
-Write-Host '  4. git push, create tag vX.Y.Z, upload APK'
+Write-Host '  4. git tag vX.Y.Z, then scripts\push-to-github.bat'
+Write-Host '  5. scripts\create-release.ps1  (creates Release + uploads APK)'
 exit 0
